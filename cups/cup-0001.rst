@@ -1,0 +1,35 @@
+Adding photolysis mechanism to Cantera
+======================================
+
+CUP: 1
+Author: Cheng Li
+Type: Feature
+Status: Active
+Created: 04-01-2024
+
+Short Description
+-----------------
+
+The CUP discusses the design of adding photolysis mechanism to Cantera.
+
+Long Description
+----------------
+
+Cantera does not natively support photochemical reactions. Adding photolsis to Cantera
+requires some deep understanding of the Cantera code base. The starting point is the
+``Kinetics`` class. The ``Kinetics`` class is the manager that solves a kinetic reaction
+systems. A kinetic reaction is a chemical reaction that takes the form of:
+
+.. math::
+
+    A + B + \ldots <=> C + \ldots
+
+or
+
+.. math::
+
+    A => B + C + \ldots
+
+Cantera supports two kinds of kinetic reactions, reversible and irreversible. The
+reversible reaction is indicated by the ``<=>`` sign and the irreversible reaction is
+indicated by the ``=>`` sign.
