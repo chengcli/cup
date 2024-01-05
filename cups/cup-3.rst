@@ -374,14 +374,9 @@ The ``AthenaArray`` is a templated class that implements a multi-dimensional arr
 with a parenthesis operator for accessing the elements. The ``AthenaArray`` class
 is part of the ``Athena++`` hydrodynamics code, and it is used in ``Harp`` for
 storing a multi-dimensional data cube. Accessing the elements of an ``AthenaArray``
-is similar to accessing the elements of a Python array, but use the parenthesis
-operator, e.g.,
-
-.. code-block:: C++
-
-    AthenaArray<double> a(10, 20, 30);
-    a(0, 0, 0) = 1.0;
-    a(1, 2, 3) = 2.0;
+is similar to accessing the elements of a Python array, except for using parenthesis
+instead of square brackets. For example, to access the element at ``(k, j, i)``,
+an ``AthenaArray`` object ``a`` is accessed as ``a(k, j, i)``.
 
 
 Radiation
