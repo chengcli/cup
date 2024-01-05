@@ -26,3 +26,4 @@ Contents
    api
    Canoe <cup-2.rst>
    Photochemistry <cup-1.rst>
+   Radiation <cup-3.rst>

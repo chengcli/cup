@@ -139,7 +139,6 @@ directory of ``Canoe`` contains the following commands:
 
 .. code-block:: cmake
 
-    ...
     include(${CMAKE_SOURCE_DIR}/cmake/yamlpp.cmake)
     include(${CMAKE_SOURCE_DIR}/cmake/gtest.cmake)
     include(${CMAKE_SOURCE_DIR}/cmake/athena.cmake)
@@ -152,7 +151,6 @@ the ``yamlpp.cmake`` file contains the following commands:
 
 .. code-block:: cmake
 
-    ...
     FetchContent_Declare(
       yamlcpp
       DOWNLOAD_EXTRACT_TIMESTAMP TRUE
@@ -231,7 +229,6 @@ the following commands:
 
 .. code-block:: cmake
 
-    ...
     set(NVAPOR 1)
     set(NCLOUD 1)
     set(NPHASE_LEGACY 2)
@@ -257,9 +254,9 @@ code for hydrodynamics. The ``Athena++`` code frequently updates and new feature
 added from time to time. ``Canoe`` wishes to use the latest version of ``Athena++`` but
 also wants to make custom changes to the code. 
 
-To achieve this, ``Canoe`` uses the ``patch`` file to patch the most recent ``Athena++`` code.
-A ``patch`` file is a text file that contains a list of differences between two source codes.
-You can create a ``patch`` file by using the ``git diff`` command. The format of the patch
+To achieve this, ``Canoe`` uses "patch" files to patch the most recent ``Athena++`` code.
+A "patch" file is a text file that contains a list of differences between two source codes.
+You can create a "patch" file using the ``git diff`` command. The format of the patch
 file looks like:
 
 .. code-block:: diff
@@ -293,14 +290,14 @@ file looks like:
                  dt1(i) /= (std::abs(wi[IVX]));
 
 
-In the example above, the ``patch`` file tells that the ``Hydro::NewBlockTimeStep()`` function
+In the example above, the "patch" file tells that the ``Hydro::NewBlockTimeStep()`` function
 has been modified. The ``@@ -112,9 +116,21 @@`` line
 tells that the modified code starts at line 112 and ends at line 116. The ``-`` sign indicates
 that the code is removed and the ``+`` sign indicates that the code is added. 
 The change reflects that when the ``implicit_flag`` is set, the model time step is calculated
 differently.
 
-The ``patch`` file can be applied to the source code by using the ``git apply`` command after
+The "patch" file can be applied to the source code by using the ``git apply`` command after
 fetching the latest ``Athena++`` code. 
 
 .. code-block:: cmake
@@ -322,7 +319,7 @@ return success. Otherwise, it will fail and the build process will halt. If the 
 ``Athena++`` code changes at places other than the ``NewBlockTimeStep`` function, the 
 ``git apply`` command will succeed and there will be no error. However, if the ``NewBlockTimeStep``
 function itself is changed, the ``git apply`` command will likely fail. In this case, you will
-need to examine the new function and update the ``patch`` file accordingly.
+need to examine the new function and update the "patch" file accordingly.
 
 References
 ----------
