@@ -28,6 +28,10 @@ Specifically, we use the C version of
 to solve the RTE [1]_. We made changes to the original srouce code to adapt it to the
 ``cmake`` and C++ environment.
 
+We use ``Harp`` to refer to the radiation module of ``Canoe`` because wrapping the 
+C-DISORT program started as a project to study the radiative properties of Jovian
+atmospheres [2]_, although it has since been updated and refactored to be more general.
+
 
 Changes to the Original C-DISORT
 --------------------------------
@@ -131,14 +135,109 @@ A radiative transfer solver like C-DISORT requires knowing the optical propertie
 the atmosphere, namely the absorption and scattering coefficients.
 The total opacity of the atmosphere is the sum of the absorption and scattering opacities,
 measured as the attenuation coefficient of the radiation field.
-The attenuation coefficient, also known as the extinction coefficient, or
+The attenuation coefficient (:math:`\kappa`), also known as the extinction coefficient, or
 the narrow-beam attenuation coefficient, is usually measured in units of
-:math:`\mathrm{m}^{-1}`.
+:math:`\mathrm{m}^{-1}`. The attenuation of a narrow light beam intensity in a medium
+of small thickness :math:`\Delta z` is acoording to the Beer-Lambert law:
 
+
+.. math::
+
+    I(z+\Delta z) = I(z) \exp(-\kappa \Delta z)
+
+
+In reality, :math:`\kappa` is a sophisticated non-smooth function of wavenumber (
+:math:`\nu`), temperature (:math:`T`), pressure (:math:`P`), and composition (:math:`X`).
+
+
+.. math::
+
+    \kappa = \kappa(\nu, T, P, X)
+
+When the medium is composed of multiple species, the total attenuation coefficient
+is the sum of the attenuation coefficients of the individual species.
+
+
+The attenuation coefficient is related to the absorption coefficient (:math:`\kappa_a`)
+and the scattering coefficient (:math:`\kappa_s`) by:
+
+.. math::
+
+    \kappa = \kappa_a + \kappa_s
+
+The absorption coefficient is related to the absorption cross section (:math:`\sigma_a`)
+by:
+
+.. math::
+
+    \kappa_a = \sigma_a \rho
+
+where :math:`\rho` is the density of the absorbing species.
+There is a similar relation between the scattering coefficient and the scattering cross
+section (:math:`\sigma_s`). But normally, we express the scattering as a fraction
+of the total attenuation.
+
+The fraction of the total attenuation coefficient that is due to scattering is called
+the single-scattering albedo (:math:`\omega_0`):
+
+
+.. math::
+
+    \omega_0 = \frac{\kappa_s}{\kappa}
+
+
+The distribution of the scattered radiation is described by the phase function
+(:math:`P(\cos\theta, \phi)`), which is the probability density function of the 
+scattering angle (:math:`\theta`, :math:`\phi`). The phase function is 
+**normalized to unity**, meaning that the phase function of the isotropic scattering is 1:
+
+.. math::
+
+    P(\cos\theta, \phi) = 1
+
+We only consider the azimuthally symmetric phase function, which is a function of
+the polar angle only. Let :math:`\mu = \cos\theta`, then the phase function is simply
+:math:`P(\mu)`.
+
+Thus, any phase function must satisfy the following conditions:
+
+.. math::
+
+    \int_{-1}^{1} P(\mu) \mathrm{d}\mu = 2
+
+The attenuation coefficient :math:`\kappa`, single-scattering albedo :math:`\omega_0`,
+and the phase function :math:`P(\mu)` are the three fundamental optical properties
+that enable the calculation of the radiative transfer in a medium.
 
 
 Absorber
 ~~~~~~~~
+
+We abstract the interaction between radiation and matter as a class called
+``Absorber``. The ``Absorber`` class has the following methods:
+
+.. code-block:: C++
+
+    class Absorber {
+      ...
+      //! Get attenuation coefficient [1/m]
+      virtual Real GetAttenuation(Real wave1, Real wave2,
+                                  AirParcel const& var) const {
+        return 0.;
+      }
+
+      //! Get single scattering albedo [1]
+      virtual Real GetSingleScatteringAlbedo(Real wave1, Real wave2,
+                                             AirParcel const& var) const {
+        return 0.;
+      }
+
+      //! Get phase function [1]
+      virtual void GetPhaseMomentum(Real* pp, Real wave1, Real wave2,
+                                    AirParcel const& var, int np) const {}
+      ...
+    };
+
 
 RadiationBand
 ~~~~~~~~~~~~~

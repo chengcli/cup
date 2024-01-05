@@ -325,8 +325,8 @@ References
 ----------
 
 .. [1] Li, Cheng, and Xi Chen. "Simulating nonhydrostatic atmospheres on planets (SNAP): Formulation, validation, and application to the Jovian atmosphere."
-   **The Astrophysical Journal Supplement Series** 240.2 (2019): 37.
+   *The Astrophysical Journal Supplement Series* 240.2 (2019): 37.
 .. [2] Ge, Huazhi, et al. "A global nonhydrostatic atmospheric model with a mass-and energy-conserving vertically implicit correction (VIC) scheme."
-   **The Astrophysical Journal** 898.2 (2020): 130.
+   *The Astrophysical Journal* 898.2 (2020): 130.
 .. [3] Chen, Xi, et al. "A control-volume model of the compressible Euler equations with a vertical Lagrangian coordinate." 
-   **Monthly Weather Review** 141.7 (2013): 2526-2544.
+   *Monthly Weather Review* 141.7 (2013): 2526-2544.
