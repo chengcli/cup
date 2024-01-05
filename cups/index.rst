@@ -1,10 +1,13 @@
-Welcome to Lumache's documentation!
-===================================
+CUPS: Design Document for Canoe
+===============================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+What is CUPS
+------------
+
+CUPS is the design document for Canoe, an open-source project that aims to
+create a modern, easy-to-use, and extensible atmospheric simulation model. 
+The source code for Canoe is available at 
+`canoe <https://github.com/chengcli/canoe>`_.
 
 Check out the :doc:`usage` section for further information, including
 how to :ref:`installation` the project.
@@ -20,3 +23,4 @@ Contents
 
    usage
    api
+   photochemistry <cup-1.rst>
