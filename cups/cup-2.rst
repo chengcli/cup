@@ -93,6 +93,7 @@ Internal build method
    mkdir build
    cd build
    cmake ..
+   make
 
 In which, ``..`` refers to the parent directory of the current directory (build).
 You can use also an **external build** method, in which you create the ``build`` directory
@@ -107,6 +108,7 @@ External build method
    mkdir build
    cd build
    cmake /path/to/project
+   make
 
 For simple tests, an internal build is sufficient. However, for large projects that may
 contain many different builds, versions, and configurations, an external build is preferred.
@@ -117,6 +119,15 @@ project files on Windows, etc). When you run `cmake` followed by the path to
 ``CMakeLists.txt``, it detects your environment, compiler, and available libraries, 
 adapting the build process accordingly. This abstraction allows developers to write code 
 without worrying about platform-specific build details.
+If your computer has multiple cores, you can use the ``-j`` option to speed up the build
+process by parallelizing the compilation. For example, 
+
+
+.. code-block:: bash
+
+   make -j4
+
+uses four cores to build the project in parallel.
 
 
 Canoe's build system
@@ -205,7 +216,38 @@ Configure your project
 ~~~~~~~~~~~~~~~~~~~~~~
 
 
-Fetch dependencies
+``Canoe`` provides a convenient command line option to configure your project. The
+``TASK`` flag allows you to invoke a specific configuration. For example, to configure
+the test case for simulating a moist rising bubble (bryan), you can run the following command:
+
+.. code-block:: bash
+
+   cmake -DTASK=bryan ..
+
+
+When the ``TASK`` flag is set, ``Canoe`` will look for ``<name>.cmake`` in the ``cmake`` directory where ``<name>`` is the value of the ``TASK`` flag.
+For example, the ``bryan.cmake`` file is located at ``cmake/bryan.cmake`` and it contains
+the following commands:
+
+.. code-block:: cmake
+
+    ...
+    set(NVAPOR 1)
+    set(NCLOUD 1)
+    set(NPHASE_LEGACY 2)
+    set(NETCDF ON)
+    set(PNETCDF ON)
+    set(MPI ON)
+    set(TASKLIST ImplicitHydroTasks)
+    set(RSOLVER lmars)
+
+These settings are specific to the ``bryan`` test case. They tell that the bryan test case
+should activate 1 vapor, 1 cloud, and 2 legacy phases. Turn on the `<NetCDF https://www.unidata.ucar.edu/software/netcdf/>`_ 
+and `PNetCDF <https://parallel-netcdf.github.io/>`_ outputs. Turn on the MPI parallelization.
+Use vertical implicit method for hydrodynamics and use the ``lmars`` Riemann solver.
+
+
+Patch dependencies
 ~~~~~~~~~~~~~~~~~~
 
 
