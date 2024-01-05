@@ -346,6 +346,18 @@ a rich class with many members and methods. Here we only show some important one
       AthenaArray<Real> btoa;
       ...
 
+     public:  // inbound functions
+      ...
+      void SetSpectralProperties(AirColumn &air, Real const *x1f, Real gH0 = 0,
+                                 int k = 0, int j = 0);
+
+      //! Calculate band radiative fluxes
+      RadiationBand const *CalBandFlux(MeshBlock const *pmb, int k, int j, int il, int iu);
+
+      //! Calculate band radiances
+      RadiationBand const *CalBandRadiance(MeshBlock const *pmb, int k, int j);
+      ...
+
      protected:
       ...
       //! radiative transfer solver
@@ -365,7 +377,15 @@ We divide the whole spectral range into several disjoint bands, with each having
 in public member arrays, such as ``btau``, ``bssa``, ``bpmom``, ``bflxup``, ``bflxdn``,
 and ``btoa`` because they are the primary outputs of the radiative transfer calculation
 used by other modules such as IO and dynamics.
-This is not particularly a safe practice, but it is convenient. The ``RadiationBand``
+This is not particularly a safe practice, but it is convenient.
+
+
+.. note::
+
+    Future versions of ``Harp`` may restrict the access of ``btau``, ``bssa`` and ``bpmom``
+
+
+The ``RadiationBand``
 object also has protected members that other modules should not access directly, such as
 the radiative transfer solver ``psolver_``, the spectral grid within the band ``pgrid_``,
 and the absorbers ``absorbers_``.
@@ -375,12 +395,101 @@ with a parenthesis operator for accessing the elements. The ``AthenaArray`` clas
 is part of the ``Athena++`` hydrodynamics code, and it is used in ``Harp`` for
 storing a multi-dimensional data cube. Accessing the elements of an ``AthenaArray``
 is similar to accessing the elements of a Python array, except for using parenthesis
-instead of square brackets. For example, to access the element at ``(k, j, i)``,
-an ``AthenaArray`` object ``a`` is accessed as ``a(k, j, i)``.
+instead of square brackets. For example, to access the element at ``(k,j,i)``,
+a 3D ``AthenaArray`` object ``a`` is accessed as ``a(k,j,i)``.
+
+
+There are three main methods of the ``RadiationBand`` class:
+
+    - ``SetSpectralProperties``: sets the spectral properties of the air column
+    - ``CalBandFlux``: calculates the radiative fluxes
+    - ``CalBandRadiance``: calculates the intensity (radiance)
+
+
+.. code-block:: C++
+
+    void RadiationBand::SetSpectralProperties(AirColumn& ac, Real const* x1f,
+                                              Real gH0, int k, int j) {
+      ...
+      for (int i = 0; i < ac.size(); ++i) {
+        auto& air = ac[i];
+        air.ToMoleFraction();
+        tem_[i] = air.w[IDN];
+
+        for (auto& a : absorbers_) {
+          for (int m = 0; m < nspec; ++m) {
+            auto& spec = pgrid_->spec[m];
+            Real kcoeff = a->GetAttenuation(spec.wav1, spec.wav2, air);  // 1/m
+            Real dssalb =
+                a->GetSingleScatteringAlbedo(spec.wav1, spec.wav2, air) * kcoeff;
+            // tau
+            tau_(m, i) += kcoeff;
+            // ssalb
+            ssa_(m, i) += dssalb;
+            // pmom
+            a->GetPhaseMomentum(mypmom.data(), spec.wav1, spec.wav2, air, npmom);
+            for (int p = 0; p <= npmom; ++p) pmom_(m, i, p) += mypmom[p] * dssalb;
+          }
+        }
+      }
+      ...
+    }
+
+
+
+``CalBandFlux`` and ``CalBandRadiance`` are the two main methods of the ``RadiationBand``
+class. The ``CalBandFlux`` method calculates the radiative fluxes
+while the ``CalBandRadiance`` method calculates the intensity (radiance).
+
+They have similar implementations, so we only show the ``CalBandFlux`` method here:
+
+
+.. code-block:: C++
+
+    RadiationBand const *RadiationBand::CalBandFlux(MeshBlock const *pmb, int k,
+                                                    int j, int il, int iu) {
+      // reset flux of this column
+      for (int i = il; i <= iu; ++i) {
+        bflxup(k, j, i) = 0.;
+        bflxdn(k, j, i) = 0.;
+      }
+
+      psolver_->Prepare(pmb, k, j);
+      psolver_->CalBandFlux(pmb, k, j, il, iu);
+
+      return this;
+    }
+
+The 3D nature of the ``Harp`` is evident in the ``CalBandFlux`` method. The ``pmb``
+argument is a pointer to the ``MeshBlock`` object that contains the data of the
+geometric information of the domain, such as the coordinates of the cell centers
+and the cell volumes. The ``k``, ``j``, ``il`` and ``iu`` arguments are the
+Fortran-style indices of the cell column that the radiative transfer calculation
+is carried out.
+
+The convention throughout ``Harp`` is that `il` and `iu` are inclusive indices of
+the cell in the column, i.e., the radiative transfer calculation is carried out for
+a vertical column with indices from `il` to `iu` inclusive. ``k`` and ``j`` are
+unspecified indices. They can be the two-dimensional horizontal indices
+or other indices that identify the column.
+
+Carrying out the radiative transfer calculation for a column is a two-step process.
+First, the ``Prepare`` method of the ``psolver_`` object is called to prepare the
+optical properties of the column. Then the ``CalBandFlux`` method of the ``psolver_``
+object is called to carry out the radiative transfer calculation.
+The calculation steps through all spectral bins within the band, and the output
+fluxes are summed and stored in the ``bflxup`` and ``bflxdn`` arrays.
+Thus, ``bflxup`` and ``bflxdn`` are initialized to zero before the calculation.
+
+Similarly, the ``CalBandRadiance`` method calls the ``Prepare`` method first and then
+the ``CalBandRadiance`` method of the ``psolver_`` object to calculate the radiance.
 
 
 Radiation
 ~~~~~~~~~
+
+Because the whole spectral range is divided into several disjoint bands, the
+``Radiation`` class is the container of ``RadiationBand`` objects. The ``Radiation``
 
 
 Opacity
