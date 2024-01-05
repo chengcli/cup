@@ -276,12 +276,16 @@ We abstract the interaction between radiation and matter as a class called
 
 to calculate the optical properties of the absorber.
 In the above code snippet, ``wave1`` and ``wave2`` are the lower and upper wavenumbers
-(or wavelengths) of the spectral band, ``var`` stores the :math:`T, P, X` state of the 
+(or wavelengths) of the spectral bin, ``var`` stores the :math:`T, P, X` state of the 
 air parcel. The ``GetAttenuation`` or ``GetSingleScatteringAlbedo`` function returns
 a real number, while the ``GetPhaseMomentum`` function returns an array of real numbers,
-stored in the ``pp`` array. 
+stored in the ``pp`` array of size ``np``.
 
-The ``np`` is the number of phase function moments to be
+Any concrete absorber class should inherit from the ``Absorber`` class and
+provides the customized implementation of the above three methods. For example, the
+``HitranAbsorber`` class loads the absorption cross section computed from the 
+`HITRAN database <https://hitran.org/>`_ and calculates the optical properties
+for a spectral bin given an atmospheric state.
 
 
 RadiationBand
