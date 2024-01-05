@@ -282,14 +282,107 @@ a real number, while the ``GetPhaseMomentum`` function returns an array of real 
 stored in the ``pp`` array of size ``np``.
 
 Any concrete absorber class should inherit from the ``Absorber`` class and
-provides the customized implementation of the above three methods. For example, the
-``HitranAbsorber`` class loads the absorption cross section computed from the 
-`HITRAN database <https://hitran.org/>`_ and calculates the optical properties
-for a spectral bin given an atmospheric state.
+provides the customized implementation of the above three methods. For example, 
+the following code snippet shows the implementation of the ``HitranAbsorber`` class for
+calculating the attenuation coefficient.
+
+.. code-block:: C++
+
+    Real HitranAbsorber::GetAttenuation(Real wave1, Real wave2,
+                                    AirParcel const &var) const {
+      // first axis is wavenumber, second is pressure, third is temperature anomaly
+      Real val, coord[3] = {wave1, var.w[IPR], var.w[IDN] - getRefTemp(var.w[IPR])};
+      interpn(&val, coord, kcoeff_.data(), axis_.data(), len_, 3, 1);
+
+      Real dens = var.w[IPR] / (Constants::Rgas * var.w[IDN]);
+      Real x0 = 1.;
+      if (mySpeciesId(0) == 0) {
+        for (int n = 1; n <= NVAPOR; ++n) x0 -= var.w[n];
+      } else {
+        x0 = var.w[mySpeciesId(0)];
+      }
+      return 1.E-3 * exp(val) * dens * x0;  // ln(m*2/kmol) -> 1/m
+    }
+
+The ``HitranAbsorber`` class is a derived class of the ``Absorber`` class.
+It loads the absorption cross section computed from the 
+`HITRAN database <https://hitran.org/>`_ and calculates the optical properties given 
+the state of an air parcel. The grided absorption cross section is stored in the 
+``kcoeff_`` array, and the ``axis_`` array stores the coordinates of the grid points.
+The ``interpn`` function is the same function as we used in the
+:ref:`photolysis rate <photolysis_rate>` calculation.
+There are other paculiarities in the code above, such as the ``mySpeciesId``,
+``NVAPOR`` that we shall defer the discussion to later.
 
 
 RadiationBand
 ~~~~~~~~~~~~~
+
+Absorbers are contained in a ``RadiationBand`` class, which manages the absorbers
+and carries out the radiative transfer calculation. The ``RadiationBand`` class is
+a rich class with many members and methods. Here we only show some important ones:
+
+.. code-block:: C++
+
+    class RadiationBand {
+     public:  // public access data
+      ....
+      //! band optical depth
+      AthenaArray<Real> btau;
+
+      //! band single scattering albedo
+      AthenaArray<Real> bssa;
+
+      //! band phase function moments
+      AthenaArray<Real> bpmom;
+
+      //! band upward flux
+      AthenaArray<Real> bflxup;
+
+      //! band downward flux
+      AthenaArray<Real> bflxdn;
+
+      //! band top-of-the-atmosphere radiance
+      AthenaArray<Real> btoa;
+      ...
+
+     protected:
+      ...
+      //! radiative transfer solver
+      std::shared_ptr<RTSolver> psolver_;
+
+      //! spectral grid
+      std::shared_ptr<SpectralGridBase> pgrid_;
+
+      //! all absorbers
+      std::vector<std::shared_ptr<Absorber>> absorbers_;
+      ...
+    }
+
+The general convention of ``Harp`` is that protected member names end with an underscore.
+We divide the whole spectral range into several disjoint bands, with each having its own
+``RadiationBand`` object. The ``RadiationBand`` object stores the optical properties
+in public member arrays, such as ``btau``, ``bssa``, ``bpmom``, ``bflxup``, ``bflxdn``,
+and ``btoa`` because they are the primary outputs of the radiative transfer calculation
+used by other modules such as IO and dynamics.
+This is not particularly a safe practice, but it is convenient. The ``RadiationBand``
+object also has protected members that other modules should not access directly, such as
+the radiative transfer solver ``psolver_``, the spectral grid within the band ``pgrid_``,
+and the absorbers ``absorbers_``.
+
+The ``AthenaArray`` is a templated class that implements a multi-dimensional array
+with a parenthesis operator for accessing the elements. The ``AthenaArray`` class
+is part of the ``Athena++`` hydrodynamics code, and it is used in ``Harp`` for
+storing a multi-dimensional data cube. Accessing the elements of an ``AthenaArray``
+is similar to accessing the elements of a Python array, but use the parenthesis
+operator, e.g.,
+
+.. code-block:: C++
+
+    AthenaArray<double> a(10, 20, 30);
+    a(0, 0, 0) = 1.0;
+    a(1, 2, 3) = 2.0;
+
 
 Radiation
 ~~~~~~~~~
