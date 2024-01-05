@@ -28,15 +28,15 @@ A photochemical reaction is written as:
 
     \text{A} \Rightarrow \text{B} + \text{C} + \ldots,
 
-in which the ``=>`` symbol indicates that the reaction is irreversible, and ``A``, ``B``, ``C`` are
-the reactants and products of the reaction. ``A`` is the parent molecule that absorbs the photon
-and ``B``, ``C`` are the daughter molecules, also called the photofragments. Sometimes,
+in which the ``=>`` symbol indicates that the reaction is irreversible, and A, B, C are
+the reactants and products of the reaction. A is the parent molecule that absorbs the photon
+and B, C are the daughter molecules, also called the photofragments. Sometimes,
 absorption of a photon does not lead to the dissociation of the parent molecule. It is legit to write 
 the reaction as:
 
 .. math::
 
-    \text{A} \Rightarrow \text{A}
+    \text{A} \Rightarrow \text{A},
 
 when the parent molecule does not dissociate. Since the outcome/yields of a photochemical reaction
 depend on the wavelength of the photon and the temperature, the stoichiometric coefficients of the 
@@ -79,6 +79,8 @@ As a result, we provide the follwing information to specify a photochemical reac
 
 ``Cantera`` uses the `YAML <https://yaml.org/>`_ format to specify a chemical reaction. The following is an example
 of the photolysis of CH\ :sub:`4`:
+
+.. _yaml_input:
 
 .. code-block:: yaml
 
@@ -160,6 +162,8 @@ The following code snippet of the ``evalFromStruct`` method shows how to evaluat
 photolysis rate coefficient, and obtain the effective stoichiometric coefficients of the photofragments
 at the same time:
 
+.. _photolysis_rate:
+
 .. code-block:: C++
 
    class PhotolysisRate : public PhotolysisBase {
@@ -203,39 +207,137 @@ at the same time:
       ...
    }
 
-In the above code, the photolysis cross section is stored in a 2D array ``m_crossSection``, where the first dimension
-is the temperature and the second dimension is the wavelength. There are ``m_ntemp`` temperatures and
-``m_nwave`` wavelengths. The ``m_temp_wave_grid`` is a one-dimensional array that stores the temperature
-grid and the wavelength grid sequentially. The ``interpn`` function finds a linear interpolation of the cross section
-at :math:`T=` ``data.temperature`` and :math:`\lambda=` ``data.wavelength[i]``, where ``i`` is the index of the wavelength grid.
-Because we use a linear interpolation, the grid of the cross section does not need to be the same as the grid 
-of photon wavelengths. It remains to say what ``PhotolysisData`` is.
+In the above code, the photolysis cross section is stored in a 3D array ``m_crossSection``, where the first dimension
+is the temperature, the second dimension is the wavelength, and the third dimension is the branch of the photolysis reaction.
+There are ``m_ntemp`` temperatures and ``m_nwave`` wavelengths. 
+The ``m_temp_wave_grid`` is a one-dimensional array that stores the temperature
+grid and the wavelength grid sequentially. The ``interpn`` function finds a multi-linear interpolation of the cross sections
+at :math:`T=` ``data.temperature`` and :math:`\lambda=` ``data.wavelength[i]``, where ``i`` is the index of the wavelength grid,
+for all branches of the photolysis reaction. The ``cross1`` and ``cross2`` arrays store the interpolated cross sections.
+Because we use an interpolation, the grid of the cross section does not need to be the same as the grid 
+of photon wavelengths. 
+
+A biproduct of the rate calculation is the effective stoichiometric coefficients of the photofragments, which are stored in the
+``m_net_products`` map. The ``m_net_products`` map is a map from the name of the photofragment to its effective stoichiometric
+coefficient. The effective stoichiometric coefficient is defined as the ratio of the number of photofragments produced to the
+number of photons absorbed. The ``m_branch`` vector stores the stoichiometric coefficients of the
+photofragments for each branch of the photolysis reaction. Each element in the ``m_branch`` vector is a map, which
+maps the name of the photofragment to its stoichiometric coefficient. The ``m_branch`` vector is initialized in the
+``PhotolysisRate`` constructor from the ``branches`` fields in the :ref:`YAML input file <yaml_input>`.
+Later, the ``m_net_products`` values are passed to a higher level class, ``Kinetics``,
+to calculate the net production rate of the photofragments. Finally, it remains to say what ``PhotolysisData`` is.
 
 
 PhotolysisData
 ~~~~~~~~~~~~~~
 
+We discussed briefly that ``Cantera`` groups reactions with the same expression of the rate coefficient to speed up the evaluation.
+In the :ref:`code snippet <photolysis_rate>` of the ``PhotolysisRate`` class, we see 
 
-Reaction
-~~~~~~~~
+.. code-block:: C++
 
+    unique_ptr<MultiRateBase> newMultiRate() const override {
+        return make_unique<MultiRate<PhotolysisRate, PhotolysisData>>();
+    }
 
-ReactionRate
-~~~~~~~~~~~~
+does the trick. When ``newMultiRate`` is called, it creates a ``MultiRate`` object that takes two template parameters,
+``PhotolysisRate`` and ``PhotolysisData``. The ``PhotolysisData`` class is a struct that stores all the 
+**shared information** used by the ``PhotolysisRate`` class. In a photolysis reaction, the shared information
+across all photolysis reactions includes the temperature, the photon actinic flux, and the wavelength. As a result,
+the ``PhotolysisData`` class is defined as:
+
+.. code-block:: C++
+
+    struct PhotolysisData : public ReactionData {
+        ...
+        vector<double> actinicFlux;
+        vector<double> wavelength;
+    };
+
+We do not need to explicitly store the temperature because it is already stored in the base class ``ReactionData``.
+Looking again at the :ref:`code snippet <photolysis_rate>` of the ``PhotolysisRate`` class:
+
+.. code-block:: C++
+
+    double evalFromStruct(PhotolysisData const& data) {
+        ...
+        double coord[2] = {data.temperature, data.wavelength[iwmin]};
+        ...
+    }
+
+the ``evalFromStruct`` method of the ``PhotolysisRate`` class takes a ``PhotolysisData`` object as an argument
+and access the temperature and the wavelength from the ``data`` object.
 
 
 MultiRate
 ~~~~~~~~~
 
+Though the rate evalution method is defined in the ``PhotolysisRate`` class, the execution is **not** done
+by the ``PhotolysisRate`` class because of the ``MultiRate`` evaluation.
+The ``MultiRate`` class is a template class that takes two template parameters, ``RateType`` and ``DataType``:
+
+.. code-block:: C++
+
+    template<class RateType, class DataType>
+    class MultiRate : public MultiRateBase {
+        CT_DEFINE_HAS_MEMBER(has_update, updateFromStruct)
+        CT_DEFINE_HAS_MEMBER(has_ddT, ddTScaledFromStruct)
+        CT_DEFINE_HAS_MEMBER(has_ddP, perturbPressure)
+        CT_DEFINE_HAS_MEMBER(has_ddM, perturbThirdBodies)
+        ...
+      protected:
+        ...
+        vector<pair<size_t, RateType&>> m_rxn_rates;
+        DataType m_shared;
+    }
+
+``PhotolysisRate`` and ``PhotolysisData`` are specializations of ``RateType`` and ``DataType``, respectively.
+The higher level manager class, ``Kinetics``, calls the ``newMultiRate`` method of the ``PhotolysisRate`` class
+that returns a ``MultiRate`` object. The ``MultiRate`` object stores the pointer to the ``RateType`` object
+in ``m_rxn_rates`` and and the shared data, a ``DataType`` object, at ``m_shared`` for all reactions 
+belonging to the same ``RateType``. Thus, a ``MultiRate`` object can evaluate the rate of all reactions 
+belonging to the same ``RateType`` via the ``m_rxn_rates`` pointers. To facilitate such
+mechanism, the ``RateType`` class must have a method called ``updateFromStruct`` that takes a ``DataType`` object.
+This is what we have done for the ``PhotolysisRate`` class.
+
+
+Reaction
+~~~~~~~~
+
+A ``ReactionRate`` object is shared by two classes, ``MultiRate`` and ``Reaction``. This could cause
+potential problems when one class modifies the ``ReactionRate`` object and the other class is not aware of it.
+See a discussion of `issue #1211 <https://github.com/Cantera/cantera/issues/1654>`_.
+
 
 Kinetics
 ~~~~~~~~
 
+All reactions and rate evaluations are managed by the ``Kinetics`` base class. 
+Specific kinetics implementations, such as ``GasKinetics`` and ``InterfaceKinetics``, are derived from the base 
+``Kinetics`` class. Here are code snippets of the ``BulkKinetics`` class, which implements
+kinetics models for gas phase reactions and its base class, ``Kinetics``:
+
+.. code-block:: C++
+
+    class Kinetics : public KineticsBase
+    {
+      ...
+      protected:
+        vector<shared_ptr<Reaction>> m_reactions;
+        ...
+    }
+
+    class BulkKinetics : public Kinetics
+    {
+      ...
+      protected:
+        vector<unique_ptr<MultiRateBase>> m_bulk_rates;
+        ...
+    }
+
+
+
 ``Kinetics`` is the manager class that solves a kinetic reaction network. A kinetic reaction is a chemical reaction that takes the form of:
-
-
-New Photolysis Classes
-----------------------
 
 
 Example
