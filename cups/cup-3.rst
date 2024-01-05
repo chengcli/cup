@@ -199,23 +199,51 @@ We only consider the azimuthally symmetric phase function, which is a function o
 the polar angle only. Let :math:`\mu = \cos\theta`, then the phase function is simply
 :math:`P(\mu)`.
 
-Thus, any phase function must satisfy the following conditions:
+Thus, any phase function must satisfy the following **normalization condition**:
+
+.. _normalization_condition:
 
 .. math::
 
     \int_{-1}^{1} P(\mu) \mathrm{d}\mu = 2
 
-We use the Legendre polynomial expansion to represent the phase function:
+We use a finite number of Legendre polynomials to represent the phase function:
 
 .. math::
 
-    P(\mu) = \sum_{n=0}^N \frac{2n+1}{2} P_n(\mu)
+    P(\mu) = \sum_{n=0}^N \tilde{\omega}_n P_n(\mu)
 
-where :math:`P_n(\mu)` is the :math:`n`-th order Legendre polynomial.
+where :math:`P_n(\mu)` is the :math:`n`-th order Legendre polynomial and the expansion
+coefficients :math:`\tilde{\omega}_n` are called the **phase moments**. The phase 
+function moments are given by the orthogonality relation:
 
-The attenuation coefficient :math:`\kappa`, single-scattering albedo :math:`\omega_0`,
-and the phase function :math:`P(\mu)` are the three fundamental optical properties
-that enable the calculation of the radiative transfer in a medium.
+.. math::
+
+    \tilde{\omega}_n = \frac{2n+1}{2} \int_{-1}^{1} P(\mu) P_n(\mu) \mathrm{d}\mu
+
+Based on the previous :ref:`normalization condition <normalization_condition>`, the
+zero-th order phase moment is always 1:
+
+.. math::
+
+    \tilde{\omega}_0 = 1
+
+because :math:`P_0(\mu) = 1`. The first-order phase moment measures the asymmetry of
+the phase function in the forward and backward directions. In isotropic scattering,
+and Rayleigh scattering, the first-order phase moment is zero. We define the *asymmetry
+factor* (:math:`g`) as one third of the first-order phase moment:
+
+.. math::
+
+    g = \frac{1}{3} \tilde{\omega}_1
+
+The :math:`g`-factor increases as the diffraction peak of the phase function becomes
+more forward-peaked and turns negative when the phase function is back-scattering dominant.
+
+Overall, the attenuation coefficient :math:`\kappa`, 
+single-scattering albedo :math:`\omega_0`,
+and the phase function moments :math:`\tilde{\omega}_n` are the three fundamental optical
+properties that enable the calculation of the radiative transfer in a medium.
 
 
 Absorber
@@ -246,7 +274,7 @@ We abstract the interaction between radiation and matter as a class called
       ...
     };
 
-to calculate the attenuation coefficient, single scattering albedo, and the phase function.
+to calculate the optical properties of the absorber.
 In the above code snippet, ``wave1`` and ``wave2`` are the lower and upper wavenumbers
 (or wavelengths) of the spectral band, ``var`` stores the :math:`T, P, X` state of the 
 air parcel. The ``GetAttenuation`` or ``GetSingleScatteringAlbedo`` function returns
