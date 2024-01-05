@@ -304,17 +304,59 @@ This is what we have done for the ``PhotolysisRate`` class.
 Reaction
 ~~~~~~~~
 
-A ``ReactionRate`` object is shared by two classes, ``MultiRate`` and ``Reaction``. This could cause
+A ``ReactionRate`` object could be manipulated by two classes, ``MultiRate`` and ``Reaction``. This may cause
 potential problems when one class modifies the ``ReactionRate`` object and the other class is not aware of it.
 See a discussion of `issue #1211 <https://github.com/Cantera/cantera/issues/1654>`_.
+The ``Reaction`` class stores a ``shared_ptr`` to the ``ReactionRate`` object:
+
+.. code-block:: C++
+
+    class Reaction {
+      ...
+      protected:
+        shared_ptr<ReactionRate> m_rate;
+        ...
+    }
+
+while the ``MultiRate`` template class stores a reference to the ``ReactionRate`` object.
+Both of them point to the same ``ReactionRate`` object. 
+
+.. note::
+
+    The ``Cantera`` official repo opts to make a copy of the ``ReactionRate`` object in the ``MultiRate`` class
+    such that the ``ReactionRate`` object is not shared by the two classes.
+
+Sharing the ``ReactionRate`` object is crucial for implementing the photolysis mechanism because
+the reaction rate calculation is performed by the ``MultiRate`` which must pass the
+effective stoichiometric coefficients back to the ``ReactionRate`` object.
+
+Pass the effective stoichiometric coefficients is done in the ``updateROP`` method
+(update the rate of progress) of the ``Kinetics`` class:
+
+.. code-block:: C++
+
+    void BulkKinetics::updateROP() {
+        ...
+        for (auto i : m_photo_index) {
+          if (m_reactions[i]->products.size() > 1) {
+            modifyProductStoichCoeff(i, m_reactions[i]->rate()->photoProducts());
+          }
+        }
+    }
+
+The above code snippet loops over all photolysis reactions and checks if there is more than one photolysis product.
+If so, it calls the ``modifyProductStoichCoeff`` method of the ``Kinetics`` class to modify the effective
+stoichiometric coefficients of the photofragments. The ``photoProducts`` method of the ``ReactionRate`` class
+returns ``m_net_products`` calculated by the ``MultiRate`` class. Thus, the ``Reaction``
+class and the ``MultiRate`` class must share the same ``ReactionRate`` object.
 
 
 Kinetics
 ~~~~~~~~
 
-All reactions and rate evaluations are managed by the ``Kinetics`` base class. 
-Specific kinetics implementations, such as ``GasKinetics`` and ``InterfaceKinetics``, are derived from the base 
-``Kinetics`` class. Here are code snippets of the ``BulkKinetics`` class, which implements
+The entire reaction network is managed by the ``Kinetics`` class. 
+Specific kinetics implementations, such as ``GasKinetics`` and ``InterfaceKinetics``, are derived from 
+the base class. Here are code snippets of the ``BulkKinetics`` class, which implements
 kinetics models for gas phase reactions and its base class, ``Kinetics``:
 
 .. code-block:: C++
@@ -336,13 +378,54 @@ kinetics models for gas phase reactions and its base class, ``Kinetics``:
     }
 
 
+The ``Kinetics`` class is the entry point to read the reaction network from the input
+YAML file. The following code snippet shows how to create a ``Kinetics`` object:
 
-``Kinetics`` is the manager class that solves a kinetic reaction network. A kinetic reaction is a chemical reaction that takes the form of:
+.. _kinetics_input:
+
+.. code-block:: C++
+
+    auto phase = newThermo("ch4_photolysis.yaml");
+    auto kin = newKinetics({phase}, "ch4_photolysis.yaml");
+
+The first line creates a ``ThermoPhase`` object from the YAML file. 
+The second line creates a ``Kinetics`` object.
+During the construction of the ``Kinetics`` object, the ``Kinetics`` class reads the reaction network
+from the YAML file and creates ``Reaction`` objects for each reaction.
+The ``Reaction`` object creates a ``ReactionRate`` object based on the reaction type.
+The ``Kinetics`` class also creates a ``MultiRate`` object for reaction rate evaluation.
+It makes sure that the ``Reaction`` object and the ``MultiRate`` object share the same ``ReactionRate`` object.
 
 
-Example
--------
+Examples
+--------
 
+Continuing from the previous :ref:`code snippet <kinetics_input>`,
+the following example shows how to calculate the forward rate constants of a photolysis reaction:
 
-Cross Section Formats
----------------------
+.. code-block:: C++
+
+    PhotochemTitan() {
+      ...
+      // set the initial state
+      phase->setState_TPX(200.0, OneAtm, "CH4:0.02 N2:0.98");
+
+      // set wavelength
+      vector<double> wavelength(10);
+      vector<double> actinic_flux(10);
+
+      for (int i = 0; i < 10; i++) {
+        wavelength[i] = 20.0 + i * 20.0;
+        actinic_flux[i] = 1.0;
+      }
+
+      kin->setWavelength(wavelength.data(), wavelength.size());
+      kin->updateActinicFlux(actinic_flux.data());
+
+      vector<double> kfwd(kin->nReactions());
+      kin->getFwdRateConstants(kfwd.data());
+    }
+
+``setWavelength`` and ``updateActinicFlux`` are new methods of the ``Kinetics`` class specifically
+for calculating photolysis reactions. This example sets the wavelength and actinic flux manually.
+But later, they should be provided by a radiation model of the atmosphere.
