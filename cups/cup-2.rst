@@ -143,7 +143,6 @@ directory of ``Canoe`` contains the following commands:
     include(${CMAKE_SOURCE_DIR}/cmake/yamlpp.cmake)
     include(${CMAKE_SOURCE_DIR}/cmake/gtest.cmake)
     include(${CMAKE_SOURCE_DIR}/cmake/athena.cmake)
-    ...
 
 
 In which, the ``include`` command includes the ``yamlpp.cmake``, ``gtest.cmake``, and
