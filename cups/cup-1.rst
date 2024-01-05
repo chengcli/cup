@@ -330,7 +330,7 @@ Sharing the ``ReactionRate`` object is crucial for implementing the photolysis m
 the reaction rate calculation is performed by the ``MultiRate`` which must pass the
 effective stoichiometric coefficients back to the ``ReactionRate`` object.
 
-Pass the effective stoichiometric coefficients is done in the ``updateROP`` method
+Passing the effective stoichiometric coefficients is done in the ``updateROP`` method
 (update the rate of progress) of the ``Kinetics`` class:
 
 .. code-block:: C++

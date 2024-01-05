@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'CUP'
+project = 'CUPS'
 copyright = '2024, Canoe'
 author = 'Cheng Li'
 
