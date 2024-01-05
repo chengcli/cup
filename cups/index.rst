@@ -23,4 +23,4 @@ Contents
 
    usage
    api
-   photochemistry <cup-1.rst>
+   Photochemistry <cup-1.rst>
