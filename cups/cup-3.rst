@@ -205,6 +205,14 @@ Thus, any phase function must satisfy the following conditions:
 
     \int_{-1}^{1} P(\mu) \mathrm{d}\mu = 2
 
+We use the Legendre polynomial expansion to represent the phase function:
+
+.. math::
+
+    P(\mu) = \sum_{n=0}^N \frac{2n+1}{2} P_n(\mu)
+
+where :math:`P_n(\mu)` is the :math:`n`-th order Legendre polynomial.
+
 The attenuation coefficient :math:`\kappa`, single-scattering albedo :math:`\omega_0`,
 and the phase function :math:`P(\mu)` are the three fundamental optical properties
 that enable the calculation of the radiative transfer in a medium.
@@ -237,6 +245,15 @@ We abstract the interaction between radiation and matter as a class called
                                     AirParcel const& var, int np) const {}
       ...
     };
+
+to calculate the attenuation coefficient, single scattering albedo, and the phase function.
+In the above code snippet, ``wave1`` and ``wave2`` are the lower and upper wavenumbers
+(or wavelengths) of the spectral band, ``var`` stores the :math:`T, P, X` state of the 
+air parcel. The ``GetAttenuation`` or ``GetSingleScatteringAlbedo`` function returns
+a real number, while the ``GetPhaseMomentum`` function returns an array of real numbers,
+stored in the ``pp`` array. 
+
+The ``np`` is the number of phase function moments to be
 
 
 RadiationBand
