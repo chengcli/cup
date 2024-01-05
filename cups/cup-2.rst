@@ -218,14 +218,15 @@ Configure your project
 
 ``Canoe`` provides a convenient command line option to configure your project. The
 ``TASK`` flag allows you to invoke a specific configuration. For example, to configure
-the test case for simulating a moist rising bubble (bryan), you can run the following command:
+the test case for simulating a moist rising bubble (bryan) [1]_, you can run the following command:
 
 .. code-block:: bash
 
    cmake -DTASK=bryan ..
 
 
-When the ``TASK`` flag is set, ``Canoe`` will look for ``<name>.cmake`` in the ``cmake`` directory where ``<name>`` is the value of the ``TASK`` flag.
+When the ``TASK`` flag is set, ``Canoe`` will look for ``<name>.cmake`` in the ``cmake`` directory 
+where ``<name>`` is the value of the ``TASK`` flag.
 For example, the ``bryan.cmake`` file is located at ``cmake/bryan.cmake`` and it contains
 the following commands:
 
@@ -242,14 +243,94 @@ the following commands:
     set(RSOLVER lmars)
 
 These settings are specific to the ``bryan`` test case. They tell that the bryan test case
-should activate 1 vapor, 1 cloud, and 2 legacy phases. Turn on the `<NetCDF https://www.unidata.ucar.edu/software/netcdf/>`_ 
+should activate 1 vapor, 1 cloud, and 2 legacy phases. Turn on the 
+`NetCDF <https://www.unidata.ucar.edu/software/netcdf/>`_ 
 and `PNetCDF <https://parallel-netcdf.github.io/>`_ outputs. Turn on the MPI parallelization.
-Use vertical implicit method for hydrodynamics and use the ``lmars`` Riemann solver.
+Use vertical implicit method [2]_ for hydrodynamics and use the LMARS Riemann solver [3]_.
 
 
 Patch dependencies
 ~~~~~~~~~~~~~~~~~~
 
+What if I want to use a package that is currently under heavy development? For example, 
+``Canoe`` uses the `Athena++ <https://github.com/PrincetonUniversity/athena>`_
+code for hydrodynamics. The ``Athena++`` code frequently updates and new features are
+added from time to time. ``Canoe`` wishes to use the latest version of ``Athena++`` but
+also wants to make custom changes to the code. 
 
-Examples
---------
+To achieve this, ``Canoe`` uses the ``patch`` file to patch the most recent ``Athena++`` code.
+A ``patch`` file is a text file that contains a list of differences between two source codes.
+You can create a ``patch`` file by using the ``git diff`` command. The format of the patch
+file looks like:
+
+.. code-block:: diff
+
+     #ifdef MPI_PARALLEL
+     #include <mpi.h>
+    @@ -112,9 +116,21 @@ void Hydro::NewBlockTimeStep() {
+                   Real speed1 = std::max(cspeed, (std::abs(wi[IVX]) + cs));
+                   Real speed2 = std::max(cspeed, (std::abs(wi[IVY]) + cs));
+                   Real speed3 = std::max(cspeed, (std::abs(wi[IVZ]) + cs));
+    -              dt1(i) /= (speed1);
+    -              dt2(i) /= (speed2);
+    -              dt3(i) /= (speed3);
+    +              int implicit_flag = pmb->pimpl->phevi->GetImplicitFlag();
+    +              if ((implicit_flag & 1) && (pmb->block_size.nx2 > 1))
+    +                dt1(i) /= pmb->pmy_mesh->cfl_number * std::abs(wi[IVX]);
+    +              else
+    +                dt1(i) /= (speed1);
+    +
+    +              if (implicit_flag & 2)
+    +                dt2(i) /= pmb->pmy_mesh->cfl_number * std::abs(wi[IVY]);
+    +              else
+    +                dt2(i) /= (speed2);
+    +
+    +              if (implicit_flag & 4)
+    +                dt3(i) /= pmb->pmy_mesh->cfl_number * std::abs(wi[IVZ]);
+    +              else
+    +                dt3(i) /= (speed3);
+                 }
+               } else { // FluidFormulation::background or disabled. Assume scalar advection:
+                 dt1(i) /= (std::abs(wi[IVX]));
+
+
+In the example above, the ``patch`` file tells that the ``Hydro::NewBlockTimeStep()`` function
+has been modified. The ``@@ -112,9 +116,21 @@`` line
+tells that the modified code starts at line 112 and ends at line 116. The ``-`` sign indicates
+that the code is removed and the ``+`` sign indicates that the code is added. 
+The change reflects that when the ``implicit_flag`` is set, the model time step is calculated
+differently.
+
+The ``patch`` file can be applied to the source code by using the ``git apply`` command after
+fetching the latest ``Athena++`` code. 
+
+.. code-block:: cmake
+
+    set(patch_command
+        git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/21.new_blockdt.patch
+        ...
+        )
+
+    FetchContent_Declare(
+      athenapp
+      GIT_REPOSITORY https://github.com/chengcli/athenapp/
+      PATCH_COMMAND ${patch_command}
+      UPDATE_DISCONNECTED TRUE)
+
+When ``git apply`` is executed, ``git`` will look for the ``athena/src/hydro.cpp`` file and 
+try to apply the patch. If the patch is successfully applied, the ``git apply`` command will
+return success. Otherwise, it will fail and the build process will halt. If the upstream
+``Athena++`` code changes at places other than the ``NewBlockTimeStep`` function, the 
+``git apply`` command will succeed and there will be no error. However, if the ``NewBlockTimeStep``
+function itself is changed, the ``git apply`` command will likely fail. In this case, you will
+need to examine the new function and update the ``patch`` file accordingly.
+
+References
+----------
+
+.. [1] Li, Cheng, and Xi Chen. "Simulating nonhydrostatic atmospheres on planets (SNAP): Formulation, validation, and application to the Jovian atmosphere."
+   **The Astrophysical Journal Supplement Series** 240.2 (2019): 37.
+.. [2] Ge, Huazhi, et al. "A global nonhydrostatic atmospheric model with a mass-and energy-conserving vertically implicit correction (VIC) scheme."
+   **The Astrophysical Journal** 898.2 (2020): 130.
+.. [3] Chen, Xi, et al. "A control-volume model of the compressible Euler equations with a vertical Lagrangian coordinate." 
+   **Monthly Weather Review** 141.7 (2013): 2526-2544.
