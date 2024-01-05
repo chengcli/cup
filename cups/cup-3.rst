@@ -127,6 +127,16 @@ Optical Properties
 ------------------
 
 
+A radiative transfer solver like C-DISORT requires knowing the optical properties of 
+the atmosphere, namely the absorption and scattering coefficients.
+The total opacity of the atmosphere is the sum of the absorption and scattering opacities,
+measured as the attenuation coefficient of the radiation field.
+The attenuation coefficient, also known as the extinction coefficient, or
+the narrow-beam attenuation coefficient, is usually measured in units of
+:math:`\mathrm{m}^{-1}`.
+
+
+
 Absorber
 ~~~~~~~~
 
