@@ -20,7 +20,9 @@ Contents
 --------
 
 .. toctree::
+   :maxdepth: 2
 
    usage
    api
+   Canoe <cup-2.rst>
    Photochemistry <cup-1.rst>
