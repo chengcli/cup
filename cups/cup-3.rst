@@ -377,7 +377,7 @@ We divide the whole spectral range into several disjoint bands, with each having
 ``RadiationBand`` object. The ``RadiationBand`` object stores the optical properties
 in public member arrays, such as ``btau``, ``bssa``, ``bpmom``, ``bflxup``, ``bflxdn``,
 and ``btoa`` because they are the primary outputs of the radiative transfer calculation
-used by other modules such as IO and dynamics.
+used by other modules such as I/O and dynamics.
 This is not particularly a safe practice, but it is convenient.
 
 
@@ -453,7 +453,9 @@ These arrays are internal arrays of the ``RadiationBand`` object that stores
 the optical properties of the air column at each spectral bin (grid point).
 They differ from band aggregates such as ``btau``, ``bssa``, and ``bpmom``
 in that the latter are the optical properties of the whole band, which are
-the sum of the optical properties of the bins.
+the sum of the optical properties of the bins. Calculating the optical depth ``btau``
+from the attenuation coefficient requires knowing the path length, which is
+provided by the ``x1f`` array.
 
 
 ``CalBandFlux`` and ``CalBandRadiance`` are the two methods that perform the
@@ -562,43 +564,61 @@ radiation bands and fields:
       ...
     };
 
+In fact, the band aggregated quantities such as ``bflxup``, ``bflxdn`` and ``btoa``,
+can be shallow references to ``flxup``, ``flxdn`` and ``radiance`` of the ``Radiation`` object,
+respectively. If a ``RadiationBand`` object is constructed within the ``Radiation`` object,
+the ``Radiation`` object is responsible for allocating the memory for
+these arrays and the ``RadiationBand`` objects sets up the
+correct shallow references. The ``Radiation`` object also stores the ``RadiationBand`` objects
+in the ``bands_`` vector. The ``RadiationBand`` objects are allocated when the ``Radiation`` 
+object is constructed and deallocated when the ``Radiation`` object is destructed.
 
-Opacity
+Two methods, ``CalFlux`` and ``CalRadiance``, are also thin wrappers of the corresponding
+methods of the ``RadiationBand`` objects. They first call the ``SetSpectralProperties``
+of each band and then loop over all ``RadiationBand`` objects
+and call the corresponding methods of the ``RadiationBand`` objects. For example, the
+``CalFlux`` method is implemented as follows:
+
+
+.. code-block:: C++
+
+    void Radiation::CalFlux(MeshBlock const *pmb, int k, int j, int il, int iu) {
+      ...
+      for (auto &p : bands_) {
+        p->SetSpectralProperties(ac, pcoord->x1f.data(), grav * H0, k, j);
+        p->CalBandFlux(pmb, k, j, il, iu);
+      }
+    }
+
+Here, we see the use of ``pcoord`` to get the coordinates of the cell faces. The
+``pcoord`` is a pointer to the ``Coordinates`` object of the ``MeshBlock`` object.
+
+Summary
 -------
 
+The core the ``Harp`` library is the ``RadiationBand`` class. It is responsible for
+calculating the optical properties of an air column, storing the optical properties
+and carrying out the radiative transfer calculation. The ``Radiation`` class is a
+simply a container of ``RadiationBand`` objects. It is entirely possible to use
+``RadiationBand`` objects directly without using the ``Radiation`` class. However,
+the ``Radiation`` class provides a convenient way to manage multiple ``RadiationBand``
+objects and perform the I/O operations. Reading radiation bands from a configuration
+file is performed by the ``Radiation`` class. Writing the output of the radiative
+transfer calculation is also performed by the ``Radiation`` class.
 
-Line-by-line Opacity
-~~~~~~~~~~~~~~~~~~~~
-
-
-Correlated-K Opacity
-~~~~~~~~~~~~~~~~~~~~
-
-
-
-Radiative Transfer
-------------------
-
-
-Boundary Conditions
-~~~~~~~~~~~~~~~~~~~
-
-
-Intensity
-~~~~~~~~~
-
-
-Radiative Flux
-~~~~~~~~~~~~~~
-
-
-Actinic Flux
-~~~~~~~~~~~~
-
-
-Examples
---------
+``Harp`` offers a simple Python interface to the ``RadiationBand`` class called ``pyharp``.
+It is currently a work in progress.
 
 
 References
 ----------
+
+.. [1] Buras, Robert, Timothy Dowling, and Claudia Emde.
+       "New secondary-scattering correction in DISORT with increased efficiency for 
+       forward scattering."
+       *Journal of Quantitative Spectroscopy and Radiative Transfer* 112.12 (2011): 2028-2034.
+
+.. [2] Li, Cheng, et al. 
+       "A high-performance atmospheric radiation package: With applications to the radiative energy budgets of giant planets."
+       *Journal of Quantitative Spectroscopy and Radiative Transfer* 217 (2018): 353-362.
+
