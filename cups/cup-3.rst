@@ -276,7 +276,8 @@ We abstract the interaction between radiation and matter as a class called
 
 to calculate the optical properties of the absorber.
 In the above code snippet, ``wave1`` and ``wave2`` are the lower and upper wavenumbers
-(or wavelengths) of the spectral bin, ``var`` stores the :math:`T, P, X` state of the 
+(or wavelengths) of the spectral bin, ``var`` stores the TPX (temperature,
+pressure, composition) state of the 
 air parcel. The ``GetAttenuation`` or ``GetSingleScatteringAlbedo`` function returns
 a real number, while the ``GetPhaseMomentum`` function returns an array of real numbers,
 stored in the ``pp`` array of size ``np``.
@@ -401,10 +402,20 @@ a 3D ``AthenaArray`` object ``a`` is accessed as ``a(k,j,i)``.
 
 There are three main methods of the ``RadiationBand`` class:
 
-    - ``SetSpectralProperties``: sets the spectral properties of the air column
+    - ``SetSpectralProperties``: sets the optical properties of the air column
     - ``CalBandFlux``: calculates the radiative fluxes
     - ``CalBandRadiance``: calculates the intensity (radiance)
 
+``SetSpectralProperties`` takes an ``AirColumn`` object and the coordinates of the
+lower boundary of the air column as input, and sets all optical properties of the
+internal variables of the ``RadiationBand`` object. The ``AirColumn`` object is
+simply a vector of ``AirParcel`` objects, which store the TPX state of
+the air parcel.
+
+A convention throughout ``Harp`` is that the ``i`` index is the vertical index,
+and ``k`` and ``j`` are unspecified indices. 
+They can represent the horizontal dimensions or other indices that identify 
+the vertical column.
 
 .. code-block:: C++
 
@@ -435,13 +446,27 @@ There are three main methods of the ``RadiationBand`` class:
       ...
     }
 
+For each air parcel, the ``ToMoleFraction`` method is called to convert the
+unit of composition to mole fractions. Then the optical properties of each absorber
+are calculated and stored in the ``tau_``, ``ssa_``, and ``pmom_`` arrays.
+These arrays are internal arrays of the ``RadiationBand`` object that stores 
+the optical properties of the air column at each spectral bin (grid point).
+They differ from band aggregates such as ``btau``, ``bssa``, and ``bpmom``
+in that the latter are the optical properties of the whole band, which are
+the sum of the optical properties of the bins.
 
 
-``CalBandFlux`` and ``CalBandRadiance`` are the two main methods of the ``RadiationBand``
-class. The ``CalBandFlux`` method calculates the radiative fluxes
+``CalBandFlux`` and ``CalBandRadiance`` are the two methods that perform the
+radiative transfer calculation. They transfer the optical properties stored
+in the internal arrays to the radiative transfer solver ``psolver_``. 
+In many cases, a radiative transfer solver is a 1D solver, so the radiative
+transfer calculation is performed column by column.
+
+
+The ``CalBandFlux`` method calculates the radiative fluxes
 while the ``CalBandRadiance`` method calculates the intensity (radiance).
-
-They have similar implementations, so we only show the ``CalBandFlux`` method here:
+They have similar implementations, so we only show the implementation of the
+``CalBandFlux`` method here:
 
 
 .. code-block:: C++
@@ -464,19 +489,32 @@ The 3D nature of the ``Harp`` is evident in the ``CalBandFlux`` method. The ``pm
 argument is a pointer to the ``MeshBlock`` object that contains the data of the
 geometric information of the domain, such as the coordinates of the cell centers
 and the cell volumes. The ``k``, ``j``, ``il`` and ``iu`` arguments are the
-Fortran-style indices of the cell column that the radiative transfer calculation
-is carried out.
+Fortran-style inclusive indices of the cell column over which the radiative transfer
+calculation is carried out, the radiative transfer calculation is carried out for
+a vertical column with indices from ``il`` to ``iu`` inclusive. 
 
-The convention throughout ``Harp`` is that `il` and `iu` are inclusive indices of
-the cell in the column, i.e., the radiative transfer calculation is carried out for
-a vertical column with indices from `il` to `iu` inclusive. ``k`` and ``j`` are
-unspecified indices. They can be the two-dimensional horizontal indices
-or other indices that identify the column.
 
-Carrying out the radiative transfer calculation for a column is a two-step process.
-First, the ``Prepare`` method of the ``psolver_`` object is called to prepare the
-optical properties of the column. Then the ``CalBandFlux`` method of the ``psolver_``
+.. note::
+
+   Explicitly using the Fortran-style indices is not a good practice in modern C++.
+   It is the major source of error and it is not performance portable. It is
+   better to use higher-level abstractions such as iterators, ranges, views and zips.
+   ``Harp`` bears the burden of using Fortran-style indices because it depends on
+   ``Athena++``, which uses Fortran-style indices. Future versions of ``Harp``
+   may swap out ``Athena++`` with a performance portable C++ library.
+
+
+Running the radiative transfer solve for an air column is a two-step process.
+First, the ``psolver_`` object calss the ``Prepare`` method to prepare the
+optical properties of the column **in the solver**. It is the specifics of the
+``psolver_`` object to decide how to prepare them. In some cases, the solver
+copies the optical properties from the ``RadiationBand`` object to its internal
+memory. In other cases, the solver may use the optical properties stored in the
+``RadiationBand`` object directly by referencing the appropriate members of the
+``RadiationBand`` object.
+Then the ``CalBandFlux`` method of the ``psolver_``
 object is called to carry out the radiative transfer calculation.
+
 The calculation steps through all spectral bins within the band, and the output
 fluxes are summed and stored in the ``bflxup`` and ``bflxdn`` arrays.
 Thus, ``bflxup`` and ``bflxdn`` are initialized to zero before the calculation.
