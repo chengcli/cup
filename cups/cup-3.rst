@@ -458,7 +458,7 @@ the sum of the optical properties of the bins.
 
 ``CalBandFlux`` and ``CalBandRadiance`` are the two methods that perform the
 radiative transfer calculation. They transfer the optical properties stored
-in the internal arrays to the radiative transfer solver ``psolver_``. 
+in the ``RadiationBand`` object to the radiative transfer solver ``psolver_``. 
 In many cases, a radiative transfer solver is a 1D solver, so the radiative
 transfer calculation is performed column by column.
 
@@ -490,7 +490,7 @@ argument is a pointer to the ``MeshBlock`` object that contains the data of the
 geometric information of the domain, such as the coordinates of the cell centers
 and the cell volumes. The ``k``, ``j``, ``il`` and ``iu`` arguments are the
 Fortran-style inclusive indices of the cell column over which the radiative transfer
-calculation is carried out, the radiative transfer calculation is carried out for
+calculation is carried out, i.e., the radiative transfer calculation is carried out for
 a vertical column with indices from ``il`` to ``iu`` inclusive. 
 
 
@@ -498,7 +498,7 @@ a vertical column with indices from ``il`` to ``iu`` inclusive.
 
    Explicitly using the Fortran-style indices is not a good practice in modern C++.
    It is the major source of error and it is not performance portable. It is
-   better to use higher-level abstractions such as iterators, ranges, views and zips.
+   advised to use higher-level abstractions such as iterators, ranges, views and zips.
    ``Harp`` bears the burden of using Fortran-style indices because it depends on
    ``Athena++``, which uses Fortran-style indices. Future versions of ``Harp``
    may swap out ``Athena++`` with a performance portable C++ library.
@@ -520,7 +520,7 @@ fluxes are summed and stored in the ``bflxup`` and ``bflxdn`` arrays.
 Thus, ``bflxup`` and ``bflxdn`` are initialized to zero before the calculation.
 
 Similarly, the ``CalBandRadiance`` method calls the ``Prepare`` method first and then
-the ``CalBandRadiance`` method of the ``psolver_`` object to calculate the radiance.
+the ``CalBandRadiance`` method of the ``psolver_`` object calculates the radiance.
 
 
 Radiation
@@ -528,6 +528,39 @@ Radiation
 
 Because the whole spectral range is divided into several disjoint bands, the
 ``Radiation`` class is the container of ``RadiationBand`` objects. The ``Radiation``
+class is a lightweight class that only stores minimal information about the
+radiation bands and fields:
+
+.. code-block:: C++
+
+    class Radiation {
+     public:  // public access data
+      //! radiation input key in the input file [radiation_config]
+      static const std::string input_key;
+
+      //! radiance of all bands
+      AthenaArray<Real> radiance;
+
+      //! upward flux of all bands
+      AthenaArray<Real> flxup;
+
+      //! downward flux of all bands
+      AthenaArray<Real> flxdn;
+
+     public:  // inbound functions
+      //! \brief Calculate the radiative flux
+      void CalFlux(MeshBlock const *pmb, int k, int j, int il, int iu);
+
+      //! \brief Calculate the radiance
+      void CalRadiance(MeshBlock const *pmb, int k, int j);
+
+     protected:
+      //! all radiation bands
+      std::vector<RadiationBandPtr> bands_;
+
+      //! incomming rays
+      std::vector<Direction> rayInput_;
+    };
 
 
 Opacity
