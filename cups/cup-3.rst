@@ -535,9 +535,7 @@ radiation bands and fields:
 
     class Radiation {
      public:  // public access data
-      //! radiation input key in the input file [radiation_config]
-      static const std::string input_key;
-
+      ...
       //! radiance of all bands
       AthenaArray<Real> radiance;
 
@@ -546,20 +544,22 @@ radiation bands and fields:
 
       //! downward flux of all bands
       AthenaArray<Real> flxdn;
+      ...
 
      public:  // inbound functions
+      ...
       //! \brief Calculate the radiative flux
       void CalFlux(MeshBlock const *pmb, int k, int j, int il, int iu);
 
       //! \brief Calculate the radiance
       void CalRadiance(MeshBlock const *pmb, int k, int j);
+      ...
 
      protected:
+      ...
       //! all radiation bands
       std::vector<RadiationBandPtr> bands_;
-
-      //! incomming rays
-      std::vector<Direction> rayInput_;
+      ...
     };
 
 
