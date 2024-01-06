@@ -606,8 +606,11 @@ objects and perform the I/O operations. Reading radiation bands from a configura
 file is performed by the ``Radiation`` class. Writing the output of the radiative
 transfer calculation is also performed by the ``Radiation`` class.
 
-``Harp`` offers a simple Python interface to the ``RadiationBand`` class called ``pyharp``.
-It is currently a work in progress.
+
+.. note::
+
+  ``Harp`` offers an experimental Python interface to the ``RadiationBand`` class 
+  called ``pyharp``. It is currently a work in progress.
 
 
 References
@@ -619,6 +622,7 @@ References
        *Journal of Quantitative Spectroscopy and Radiative Transfer* 112.12 (2011): 2028-2034.
 
 .. [2] Li, Cheng, et al. 
-       "A high-performance atmospheric radiation package: With applications to the radiative energy budgets of giant planets."
+       "A high-performance atmospheric radiation package: With applications to the 
+       radiative energy budgets of giant planets."
        *Journal of Quantitative Spectroscopy and Radiative Transfer* 217 (2018): 353-362.
 
