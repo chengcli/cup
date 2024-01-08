@@ -1,10 +1,17 @@
 Adding photolysis mechanism to Cantera
 ======================================
 
-CUP: 1
-Author: Cheng Li
-Type: Feature
-Created: 04-01-2024
+:CUP:
+  1
+
+:Author:
+  Cheng Li
+
+:Type: 
+  Feature
+
+:Created: 
+  01-04-2024
 
 .. toctree::
    :local:

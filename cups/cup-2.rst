@@ -1,10 +1,17 @@
 Canoe as a vessel for models
 ============================
 
-CUP: 2
-Author: Cheng Li
-Type: Feature
-Created: 05-01-2024
+:CUP:
+  2
+
+:Author:
+  Cheng Li
+
+:Type:
+  Feature
+
+:Created:
+  01-05-2024
 
 .. toctree::
    :local:
@@ -238,7 +245,7 @@ the following commands:
     set(TASKLIST ImplicitHydroTasks)
     set(RSOLVER lmars)
 
-These settings are specific to the ``bryan`` test case. They tell that the bryan test case
+These settings are specific to the "bryan" test case. They tell that the "bryan" test case
 should activate 1 vapor, 1 cloud, and 2 legacy phases. Turn on the 
 `NetCDF <https://www.unidata.ucar.edu/software/netcdf/>`_ 
 and `PNetCDF <https://parallel-netcdf.github.io/>`_ outputs. Turn on the MPI parallelization.

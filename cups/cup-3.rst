@@ -1,12 +1,19 @@
 Plane-parallel Radiative Transfer
 =================================
 
-CUP: 3
-Author: Cheng Li
-Type: Feature
-Created: 05-01-2024
+:CUP:
+  3
 
-.. toctr::
+:Author:
+  Cheng Li
+
+:Type:
+  Feature
+
+:Created:
+  01-05-2024
+
+.. toctree::
     :local:
     :depth: 2
 
@@ -449,7 +456,7 @@ the vertical column.
 For each air parcel, the ``ToMoleFraction`` method is called to convert the
 unit of composition to mole fractions. Then the optical properties of each absorber
 are calculated and stored in the ``tau_``, ``ssa_``, and ``pmom_`` arrays.
-These arrays are internal arrays of the ``RadiationBand`` object that stores 
+These arrays are internal arrays of the ``RadiationBand`` object that store 
 the optical properties of the air column at each spectral bin (grid point).
 They differ from band aggregates such as ``btau``, ``bssa``, and ``bpmom``
 in that the latter are the optical properties of the whole band, which are
@@ -498,7 +505,7 @@ a vertical column with indices from ``il`` to ``iu`` inclusive.
 
 .. note::
 
-   Explicitly using the Fortran-style indices is not a good practice in modern C++.
+   Explicitly using the Fortran-style indices ``(k,j,i)`` is not a good practice in modern C++.
    It is the major source of error and it is not performance portable. It is
    advised to use higher-level abstractions such as iterators, ranges, views and zips.
    ``Harp`` bears the burden of using Fortran-style indices because it depends on
@@ -596,7 +603,7 @@ Here, we see the use of ``pcoord`` to get the coordinates of the cell faces. The
 Summary
 -------
 
-The core the ``Harp`` library is the ``RadiationBand`` class. It is responsible for
+The core of the ``Harp`` library is the ``RadiationBand`` class. It is responsible for
 calculating the optical properties of an air column, storing the optical properties
 and carrying out the radiative transfer calculation. The ``Radiation`` class is a
 simply a container of ``RadiationBand`` objects. It is entirely possible to use

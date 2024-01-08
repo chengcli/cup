@@ -1,39 +1,22 @@
-Modeling Opacity
-================
+Problem Generator and Unit Tests
+================================
 
-CPU: 4
-Author: Cheng Li
-Type: Feature
-Created: 06-01-2024
+:CUP:
+  4
 
+:Author:
+  Cheng Li
 
-Line-by-line Opacity
-~~~~~~~~~~~~~~~~~~~~
+:Type:
+  Feature
 
-
-Correlated-K Opacity
-~~~~~~~~~~~~~~~~~~~~
-
-
-Radiative Transfer
-------------------
+:Created:
+  01-07-2017
 
 
-Boundary Conditions
-~~~~~~~~~~~~~~~~~~~
+How to write a problem generator
+--------------------------------
 
 
-Intensity
-~~~~~~~~~
-
-
-Radiative Flux
-~~~~~~~~~~~~~~
-
-
-Actinic Flux
-~~~~~~~~~~~~
-
-
-Examples
---------
+How to write a unit test
+------------------------
