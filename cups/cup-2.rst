@@ -1,3 +1,5 @@
+.. _cup2:
+
 Canoe as a vessel for models
 ============================
 
