@@ -224,3 +224,12 @@ variables satisfy the requirements. If not, the unit test will not be compiled.
 Problem Generator
 -----------------
 
+Once smaller functions are tested, the next step is to assemble them into
+the solver that ``Canoe`` provides. The **problem generator** is a file that
+generates the initial condition for a specific problem.
+Examples of problem generators can be found under the ``examples/`` folder.
+Each example problem should contain a folder that contains the following files:
+  
+  - ``<problem>.cpp``: the problem generator
+  - ``<problem>.inp``: the input file for the problem
+  - ``<problem>.yaml``: the configuration file for the problem
