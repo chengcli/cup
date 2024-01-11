@@ -14,8 +14,6 @@ Plane-parallel Radiative Transfer
   01-05-2024
 
 .. toctree::
-    :local:
-    :depth: 2
 
 Overview
 --------

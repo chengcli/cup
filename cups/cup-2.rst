@@ -16,8 +16,6 @@ Canoe as a vessel for models
   01-05-2024
 
 .. toctree::
-   :local:
-   :depth: 2
 
 Overview
 --------

@@ -17,8 +17,6 @@ Problem Generator and Unit Tests
   :ref:`CUP2 <cup2>`
 
 .. toctree::
-   :local:
-   :depth: 2
 
 Overview
 --------

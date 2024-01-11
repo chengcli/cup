@@ -14,8 +14,6 @@ Adding photolysis mechanism to Cantera
   01-04-2024
 
 .. toctree::
-   :local:
-   :depth: 2
 
 Overview
 --------
@@ -33,7 +31,7 @@ A photochemical reaction is written as:
 
 .. math::
 
-    \text{A} \Rightarrow \text{B} + \text{C} + \ldots,
+    \mathrm{A} \Rightarrow \mathrm{B} + \mathrm{C} + \ldots,
 
 in which the ``=>`` symbol indicates that the reaction is irreversible, and A, B, C are
 the reactants and products of the reaction. A is the parent molecule that absorbs the photon
@@ -43,7 +41,7 @@ the reaction as:
 
 .. math::
 
-    \text{A} \Rightarrow \text{A},
+    \mathrm{A} \Rightarrow \mathrm{A},
 
 when the parent molecule does not dissociate. Since the outcome/yields of a photochemical reaction
 depend on the wavelength of the photon and the temperature, the stoichiometric coefficients of the 
@@ -53,12 +51,12 @@ fragments. For example, the photolysis of CH\ :sub:`4` can be written as:
 
 .. math::
 
-    \begin{align}
-    \text{CH}_4 & \Rightarrow \text{CH}_3 + \text{H} \\
-    \text{CH}_4 & \Rightarrow (1)\text{CH}_2 + \text{H}_2 \\
-    \text{CH}_4 & \Rightarrow (3)\text{CH}_2 + \text{H} \\
-    & \ldots
-    \end{align}
+    \begin{align*}
+    \mathrm{CH}_4 & \Rightarrow \mathrm{CH}_3 + \mathrm{H} \\
+    \mathrm{CH}_4 & \Rightarrow (1)\mathrm{CH}_2 + \mathrm{H}_2 \\
+    \mathrm{CH}_4 & \Rightarrow (3)\mathrm{CH}_2 + \mathrm{H} \\
+                & \ldots
+    \end{align*}
 
 Each of the above reactions is called a branch of the photolysis reaction. The total photolysis rate
 of CH\ :sub:`4` is the sum of the rates of all branches. The fraction of each branch out of the total
@@ -73,7 +71,7 @@ net photolysis reaction of CH\ :sub:`4` can be written as:
 
 .. math::
 
-    \text{CH}_4 \Rightarrow \text{CH}_3 + (1)\text{CH}_2 + \text{H}_2 + (3)\text{CH}_2 + \text{H} + \ldots
+    \mathrm{CH}_4 \Rightarrow \mathrm{CH}_3 + (1)\mathrm{CH}_2 + \mathrm{H}_2 + (3)\mathrm{CH}_2 + \mathrm{H} + \ldots
 
 This way allows a more compact representation of the photolysis reaction such that the total photolysis rate
 of CH\ :sub:`4` is the rate of this net reaction. It is important to note that the effective stoichiometric
