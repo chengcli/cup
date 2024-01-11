@@ -146,6 +146,8 @@ of a class. The first argument of the ``TEST_F`` macro is the name of the test
 class, and the second argument is the name of the test subroutine.
 Here is a snippet of the implementation of the ``TestImpl`` class:
 
+.. _test_impl:
+
 .. code-block:: c++
 
     class TestImpl: public ::testing::Test {
@@ -169,6 +171,7 @@ Here is a snippet of the implementation of the ``TestImpl`` class:
         int mesh_only = false;
         pmesh = new Mesh(pinput, mesh_only);
         ...
+        pmesh->Initialize(restart, pinput);
       }
 
       virtual void TearDown() {
@@ -228,8 +231,66 @@ Once smaller functions are tested, the next step is to assemble them into
 the solver that ``Canoe`` provides. The **problem generator** is a file that
 generates the initial condition for a specific problem.
 Examples of problem generators can be found under the ``examples/`` folder.
-Each example problem should contain a folder that contains the following files:
+Each example problem is a folder that may contain the following files:
   
   - ``<problem>.cpp``: the problem generator
   - ``<problem>.inp``: the input file for the problem
   - ``<problem>.yaml``: the configuration file for the problem
+
+We will leave the discussion of the input file and the configuration file
+to other CUPs. Here we focus on the problem generator.
+An example snippet of the problem generator is shown below:
+
+.. code-block:: c++
+
+    void MeshBlock::ProblemGenerator(ParameterInput *pin) {
+      ...
+      // construct atmosphere from bottom up
+      for (int k = ks; k <= ke; ++k)
+        for (int j = js; j <= je; ++j) {
+          air.SetZero();
+          air.w[iH2O] = xH2O;
+          air.w[IPR] = Ps;
+          air.w[IDN] = Ts;
+          ...
+          for (int i = is; i <= ie; ++i) {
+            air.w[IVX] = 1. * sin(2. * M_PI * rand() / RAND_MAX);
+            AirParcelHelper::distribute_to_conserved(this, k, j, i, air);
+            pthermo->Extrapolate(&air, pcoord->dx1f(i),
+                                 Thermodynamics::Method::PseudoAdiabat, grav,
+                                 1.e-5);
+          }
+          ...
+          pimpl->prad->CalFlux(this, k, j, is, ie + 1);
+        }
+    }
+
+The ``ProblemGenerator`` function is a member function of the ``MeshBlock``,
+which is a high-level manager class that manages the data and the operations
+on a mesh grid. The ``ProblemGenerator`` function is automatically called
+inside
+
+.. code-block:: c++
+
+    pmesh->Initialize(restart, pinput);
+
+function of the ``Mesh`` class (see the code snippet in the :ref:`TestImpl <test_impl>` class).
+
+Inside the body of the ``ProblemGenerator`` function, the initial condition
+is constructed by setting the conserved variables of each cell. The
+``AirParcelHelper::distribute_to_conserved`` function converts the primitive
+variables to the conserved variables. The ``pthermo->Extrapolate`` function
+extrapolates the primitive variables to another level along a pseudo-adiabat.
+At the end, the ``pimpl->prad->CalFlux`` function calculates the radiation
+fluxes from level ``is`` to ``ie + 1`` at the ``k``-th and ``j``-th cell.
+
+Similar to the unit tests, the problem generator is compiled by adding
+the following line to the ``CMakeLists.txt`` file when building the
+executables of the ``Canoe``:
+
+.. code-block:: cmake
+
+    setup_problem(<problem>)
+
+where ``<problem>`` is the name of the problem generator file without the
+``.cpp`` extension.

@@ -25,4 +25,4 @@ Contents
    Canoe <cup-2.rst>
    Photochemistry <cup-1.rst>
    Radiation <cup-3.rst>
-   Create Project <cup-4.rst>
+   Problem Generator <cup-4.rst>
